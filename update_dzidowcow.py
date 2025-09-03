@@ -29,7 +29,7 @@ with open(CSV_FILE, "a", newline="", encoding="utf-8") as csvfile:
         writer.writeheader()
 
     for user_id in range(start_id, end_id + 1):
-        url = f"https://jbzd.com.pl/user/profile/{user_id}"
+        url = f"https://jbzd.com.pl/mikroblog/user/profile/{user_id}"
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()

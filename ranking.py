@@ -5,26 +5,25 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import deque
 
 # --- KONFIGURACJA ---
-TOTAL_PAGES = 16000       # liczba wszystkich stron do pobrania
+TOTAL_PAGES = 16000       # liczba wszystkich stron
 BLOCK_SIZE = 1000         # liczba stron w jednym bloku
 PER_PAGE = 50             # liczba wpisów na stronę
-THREADS = 10              # liczba równoległych wątków
+THREADS = 10              # liczba równoległych wątków, stabilniejsze niż 50
 
 url_template = "https://api.jbzd.com.pl/ranking/get?page={}&per_page={}"
 
-# Funkcja pobierająca jedną stronę
+# Funkcja pobierająca pojedynczą stronę
 def fetch_page(page):
     try:
         resp = requests.get(url_template.format(page, PER_PAGE), timeout=10)
         if resp.status_code == 200:
             data = resp.json().get("rankings", {}).get("data", [])
             return "ok", data
-        elif resp.status_code == 429:
-            return "retry", []
         else:
-            return "fail", []
+            # Każdy inny status traktujemy jako retry
+            return "retry", []
     except Exception:
-        return "fail", []
+        return "retry", []
 
 # Funkcja pobierająca blok stron
 def fetch_block(start_page, end_page):
@@ -50,13 +49,12 @@ def fetch_block(start_page, end_page):
                     } for u in data])
                     print(f"Pobrano stronę {page}", flush=True)
                 elif status == "retry":
-                    pages_queue.append(page)  # przerzuć stronę 429 na koniec kolejki
-                    print(f"429 – strona {page} wraca na koniec kolejki", flush=True)
-                else:
-                    print(f"Nieudana strona {page}", flush=True)
+                    pages_queue.append(page)  # każda nieudana strona wraca na koniec kolejki
+                    print(f"Strona {page} nieudana – wraca na koniec kolejki", flush=True)
         
         if pages_queue:
-            time.sleep(5)  # krótka przerwa przed kolejną rundą retry
+            # Krótka przerwa przed kolejną rundą retry
+            time.sleep(5)
     
     return results
 

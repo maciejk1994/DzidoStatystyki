@@ -8,7 +8,7 @@ from collections import deque
 TOTAL_PAGES = 16000       # liczba wszystkich stron do pobrania
 BLOCK_SIZE = 1000         # liczba stron w jednym bloku
 PER_PAGE = 50             # liczba wpisów na stronę
-THREADS = 50              # liczba równoległych wątków
+THREADS = 10              # liczba równoległych wątków
 
 url_template = "https://api.jbzd.com.pl/ranking/get?page={}&per_page={}"
 

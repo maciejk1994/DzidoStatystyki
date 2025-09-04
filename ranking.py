@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import deque
 
 # --- KONFIGURACJA ---
-TOTAL_PAGES = 16000       # liczba wszystkich stron
+TOTAL_PAGES = 2000      # liczba wszystkich stron
 BLOCK_SIZE = 1000         # liczba stron w jednym bloku
 PER_PAGE = 50             # liczba wpisów na stronę
 THREADS = 10              # liczba równoległych wątków, stabilniejsze niż 50

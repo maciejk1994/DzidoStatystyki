@@ -5,13 +5,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import deque
 
 # --- KONFIGURACJA ---
-TOTAL_PAGES = 16000
-BLOCK_SIZE = 1000
-PER_PAGE = 50
-THREADS = 50
+TOTAL_PAGES = 16000       # liczba wszystkich stron do pobrania
+BLOCK_SIZE = 1000         # liczba stron w jednym bloku
+PER_PAGE = 50             # liczba wpisów na stronę
+THREADS = 50              # liczba równoległych wątków
 
 url_template = "https://api.jbzd.com.pl/ranking/get?page={}&per_page={}"
 
+# Funkcja pobierająca jedną stronę
 def fetch_page(page):
     try:
         resp = requests.get(url_template.format(page, PER_PAGE), timeout=10)
@@ -25,6 +26,7 @@ def fetch_page(page):
     except Exception:
         return "fail", []
 
+# Funkcja pobierająca blok stron
 def fetch_block(start_page, end_page):
     results = []
     pages_queue = deque(range(start_page, end_page + 1))
@@ -48,14 +50,13 @@ def fetch_block(start_page, end_page):
                     } for u in data])
                     print(f"Pobrano stronę {page}", flush=True)
                 elif status == "retry":
-                    pages_queue.append(page)  # przesuwamy na koniec kolejki
+                    pages_queue.append(page)  # przerzuć stronę 429 na koniec kolejki
                     print(f"429 – strona {page} wraca na koniec kolejki", flush=True)
                 else:
                     print(f"Nieudana strona {page}", flush=True)
         
-        # Krótka przerwa między rundami retry, żeby API się "ochłodziło"
         if pages_queue:
-            time.sleep(5)
+            time.sleep(5)  # krótka przerwa przed kolejną rundą retry
     
     return results
 
@@ -66,6 +67,7 @@ start_time = time.time()
 for block_start in range(1, TOTAL_PAGES + 1, BLOCK_SIZE):
     block_end = min(block_start + BLOCK_SIZE - 1, TOTAL_PAGES)
     print(f"\n--- Pobieranie blok {block_start}-{block_end} ---", flush=True)
+    
     block_results = fetch_block(block_start, block_end)
     all_results.extend(block_results)
 

@@ -3,7 +3,7 @@ import csv
 import time
 
 # --- KONFIGURACJA ---
-total_pages = 100  # testowo
+total_pages = 16000  # testowo
 url_template = "https://api.jbzd.com.pl/ranking/get?page={}&per_page=50"
 
 results = []
@@ -50,7 +50,7 @@ for page in range(1, total_pages + 1):
 results_sorted = sorted(results, key=lambda x: x["id"])
 
 # --- ZAPIS DO CSV ---
-csv_file = "ranking_100.csv"
+csv_file = "ranking.csv"
 with open(csv_file, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=["id", "points", "rank", "name", "slug", "color"])
     writer.writeheader()

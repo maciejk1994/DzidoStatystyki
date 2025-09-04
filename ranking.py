@@ -5,28 +5,30 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import deque
 
 # --- KONFIGURACJA ---
-TOTAL_PAGES = 2000      # liczba wszystkich stron
-BLOCK_SIZE = 1000         # liczba stron w jednym bloku
-PER_PAGE = 50             # liczba wpisów na stronę
-THREADS = 10              # liczba równoległych wątków, stabilniejsze niż 50
+BLOCK_SIZE = 1000        # liczba stron w jednym bloku
+PER_PAGE = 50            # liczba wpisów na stronę
+THREADS = 10             # liczba równoległych wątków
 
 url_template = "https://api.jbzd.com.pl/ranking/get?page={}&per_page={}"
 
-# Funkcja pobierająca pojedynczą stronę
+# --- FUNKCJE ---
 def fetch_page(page):
+    """Pobiera pojedynczą stronę."""
     try:
         resp = requests.get(url_template.format(page, PER_PAGE), timeout=10)
         if resp.status_code == 200:
             data = resp.json().get("rankings", {}).get("data", [])
             return "ok", data
+        elif resp.status_code == 404:
+            print(f"Strona {page} nie istnieje (404), pomijamy", flush=True)
+            return "skip", []
         else:
-            # Każdy inny status traktujemy jako retry
             return "retry", []
     except Exception:
         return "retry", []
 
-# Funkcja pobierająca blok stron
 def fetch_block(start_page, end_page):
+    """Pobiera blok stron z retry dla błędów innych niż 404."""
     results = []
     pages_queue = deque(range(start_page, end_page + 1))
     
@@ -38,6 +40,7 @@ def fetch_block(start_page, end_page):
             for future in as_completed(futures):
                 page = futures[future]
                 status, data = future.result()
+                
                 if status == "ok":
                     results.extend([{
                         "id": u["id"],
@@ -49,11 +52,12 @@ def fetch_block(start_page, end_page):
                     } for u in data])
                     print(f"Pobrano stronę {page}", flush=True)
                 elif status == "retry":
-                    pages_queue.append(page)  # każda nieudana strona wraca na koniec kolejki
+                    pages_queue.append(page)
                     print(f"Strona {page} nieudana – wraca na koniec kolejki", flush=True)
+                elif status == "skip":
+                    continue
         
         if pages_queue:
-            # Krótka przerwa przed kolejną rundą retry
             time.sleep(5)
     
     return results
@@ -62,8 +66,13 @@ def fetch_block(start_page, end_page):
 all_results = []
 start_time = time.time()
 
-for block_start in range(1, TOTAL_PAGES + 1, BLOCK_SIZE):
-    block_end = min(block_start + BLOCK_SIZE - 1, TOTAL_PAGES)
+# Pobieramy pierwszą stronę, aby określić ile jest wszystkich stron
+resp = requests.get(url_template.format(1, PER_PAGE)).json()
+last_page = resp.get("rankings", {}).get("last_page", 1)
+print(f"Łączna liczba stron do pobrania: {last_page}")
+
+for block_start in range(1, last_page + 1, BLOCK_SIZE):
+    block_end = min(block_start + BLOCK_SIZE - 1, last_page)
     print(f"\n--- Pobieranie blok {block_start}-{block_end} ---", flush=True)
     
     block_results = fetch_block(block_start, block_end)
@@ -81,3 +90,6 @@ for block_start in range(1, TOTAL_PAGES + 1, BLOCK_SIZE):
             writer.writerow(row)
 
     print(f"Blok {block_start}-{block_end} zapisany do {csv_file} (łącznie {len(all_results_sorted)} rekordów)", flush=True)
+
+end_time = time.time()
+print(f"\nCałkowity czas pobierania: {end_time - start_time:.2f} sekund")

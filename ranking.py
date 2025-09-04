@@ -7,7 +7,7 @@ from collections import deque
 # --- KONFIGURACJA ---
 BLOCK_SIZE = 1000        # liczba stron w jednym bloku
 PER_PAGE = 50            # liczba wpisów na stronę
-THREADS = 10             # liczba równoległych wątków
+THREADS = 5             # liczba równoległych wątków
 
 url_template = "https://api.jbzd.com.pl/ranking/get?page={}&per_page={}"
 
